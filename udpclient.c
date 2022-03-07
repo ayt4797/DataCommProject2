@@ -96,6 +96,7 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   time_t start,end,t;
+  start=clock();//predefined  function in c
 
   // Loop here until we get a SIGHUP or other interrupting signal
   for (;;) {
@@ -106,7 +107,6 @@ int main(int argc, char *argv[]) {
 
     // remove trailing \n from the user input
     data_to_send[strlen(data_to_send) - 1] = 0x00;    
-    start=clock();//predefined  function in c
     //after the user defined function does its work
     // send data
     int len =

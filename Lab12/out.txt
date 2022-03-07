@@ -1,0 +1,58 @@
+proccessing file :  0   
+Solution x:
+  3.0000
+  2.0000
+  5.0000
+proccessing file :  1  
+Solution x:
+ -1.7500
+ -1.0000
+  5.5000
+proccessing file :  2  
+Solution x:
+ -1.7500
+ -1.0000
+  5.5000
+proccessing file :  3  
+Solution x:
+-75359.4043
+3932950.6078
+-56715807.3215
+358886419.5002
+-1159200690.8103
+2000559371.8266
+-1877105898.3692
+1396785824.9995
+-2046085292.8137
+2664101243.1343
+-1677500821.5579
+392383552.2631
+proccessing file :  4  
+gsl: lu.c:147: ERROR: matrix is singular
+Default GSL error handler invoked.
+proccessing file :  5  
+gsl: lu.c:147: ERROR: matrix is singular
+Default GSL error handler invoked.
+proccessing file :  6  
+Solution x:
+  0.3550
+ -2.6331
+  4.3609
+  0.0533
+  0.4911
+proccessing file :  7  
+Solution x:
+ -1.7500
+ -1.0000
+  5.5000
+proccessing file :  8  
+gsl: lu.c:147: ERROR: matrix is singular
+Default GSL error handler invoked.
+proccessing file :  9  
+can't work w/ negatives || zero dimensonsproccessing file :  10  
+NOT ENOUGH COLLUMS
+proccessing file :  11  
+Solution x:
+  2.0000
+proccessing file :  12  
+END OF FILE ERR not enough rows in data

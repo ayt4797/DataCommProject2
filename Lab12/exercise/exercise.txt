@@ -1,0 +1,4 @@
+lab E: 
+the output values printed are the length of the string and the 
+contents of the string, valgrind reporst an error on the last one,
+b/c of an invalid read
