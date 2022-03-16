@@ -59,7 +59,7 @@ int main() {
 }
 */
 
-#define BUF_SIZE    8192
+#define BUF_SIZE    1500
 
 int main(int argc, char *argv[]) {
   //const char* server_name = "localhost";  
@@ -92,16 +92,22 @@ int main(int argc, char *argv[]) {
   server_address.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
   // htons: port in network order format
   server_address.sin_port = htons(server_port);
-	server_address.sin_addr.s_addr=ip_addr;
+server_address.sin_addr.s_addr=ip_addr;
+
   // open socket
   int sock;
-  if ((sock = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
+  if ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
     printf("could not create socket\n");
     return 1;
   }
 	struct timeval timev;
 	fd_set rfds;
-
+  	if (connect(sock, (struct sockaddr*)&server_address, sizeof(server_address)) != 0) {
+        printf("connection with the server failed...\n");
+        exit(0);
+    }
+    else
+        printf("connected to the server..\n");
   // Loop here until we get a SIGHUP or other interrupting signal
   for (;;) {
     printf("Prompt> ");
@@ -121,7 +127,7 @@ int main(int argc, char *argv[]) {
     FD_ZERO(&rfds);
     FD_SET(sock, &rfds);
 	time_t start = time(NULL);
-	int s = select(5, &rfds, NULL, NULL, &timev);
+	int s = select(32, &rfds, NULL, NULL, &timev);
 	time_t end = time(NULL);
     if (s == -1)
         perror("select failed!");
@@ -142,7 +148,7 @@ int main(int argc, char *argv[]) {
 		printf("Select: %d",s);
 		int diff = (end-start);
 	printf("\n time : %d\n",diff);
-	
+
 
     // data that will be sent to the server
     // fgets(data_to_send, BUF_SIZE, stdin);

@@ -5,9 +5,11 @@
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
-#include <netdb.h>
+#include <stdlib.h>
+#include <sys/types.h>
+#include <unistd.h>
 
-#define BUF_SIZE    8192
+#define BUF_SIZE    1500
 #define	SERVER_PORT 8888
 
 
@@ -27,7 +29,7 @@ int main(int argc, char *argv[]) {
 	}
 	// socket address used for the server
 	struct sockaddr_in server_address;
-	
+  
 	// socket address used to store client address
 	struct sockaddr_in client_address;
   
@@ -47,11 +49,10 @@ int main(int argc, char *argv[]) {
 	// htons: host to network long: same as htons but for long
 	
 	server_address.sin_addr.s_addr = ip_addr;
-	char hostname[16];
 
 	// create a UDP socket, creation returns -1 on failure
 	int sock;
-	if ((sock = socket(AF_INET, SOCK_DGRAM, 0)) < 0) {
+	if ((sock = socket(AF_INET, SOCK_STREAM, 0)) < 0) {
 		printf("could not create socket\n");
 		return 1;
 	}
@@ -70,14 +71,28 @@ int main(int argc, char *argv[]) {
 		printf("could not bind socket\n");
 		return 1;
 	}
+	printf("binded on port : %d",SERVER_PORT);
+	listen(sock,5);
+	printf("\nlistening\n");
+	int accepted=0;
+	socklen_t client_address_size=0;
+	while (accepted==0)	{
+		client_address_size=sizeof(client_address);
+		accepted =accept(sock, (struct sockaddr*)&client_address,&client_address_size);
+		// if(accepted<0){
+		// 	printf("\nerror in accepting\n");
+		// 	return -99;
+		// }	
+	}
 	
+	
+	printf("\nconnection w/ tcp server\n");
 	// run indefinitely
-	while (true) 
-  {
+	while (true)   {
     memset( buffer, 0x00, BUF_SIZE+1 );
     printf("Calling Rcv\n");
 		// read content into buffer from an incoming client
-		int len = recvfrom(sock, buffer, BUF_SIZE, 0,
+		int len = recvfrom(accepted, buffer, BUF_SIZE, 0,
 		                   (struct sockaddr *)&client_address,
 		                   &client_address_len);
 	read_counter+=1;
@@ -88,24 +103,23 @@ int main(int argc, char *argv[]) {
     }
     else
     {
-	if(getnameinfo (&client_address,client_address_len, hostname,16,NULL,0,0 )==-1){
-		printf("error getting host name\n");
-		return -99;
-	}
-
       // inet_ntoa prints user friendly representation of the ip address
-      printf( "rcvd: '%s' from %s %u %d <%s>\n",
+   		printf( "rcvd: '%s' from %s %u %d\n",
               buffer,
               inet_ntoa( client_address.sin_addr ),
               ntohs(client_address.sin_port),
-              client_address_len,hostname );
+              client_address_len );
 		printf("read counter: %d\n", read_counter);
       // send same content back to the client ("echo") 
 	  //I think this is where the ack is sent*
-      sendto(sock, buffer, len, 0, (struct sockaddr *)&client_address,
+	int len_send= 	sendto(accepted, buffer, len, 0, (struct sockaddr *)&client_address,
             sizeof(client_address));
+		if(len_send==-1){
+			printf("error sending back");
+			return -99;
+		}
     }
 	}
-
+	close(sock);
 	return 0;
 }
