@@ -104,12 +104,14 @@ int main(int argc, char *argv[]) {
 
   // Loop here until we get a SIGHUP or other interrupting signal
   for (;;) {
+	printf("\n");
     printf("Prompt> ");
     memset( data_to_send, 0x00, BUF_SIZE + 1);
-	scanf("%s",data_to_send);
- 	data_to_send[strlen(data_to_send) - 1] = 0x00;    
+	fgets(data_to_send, BUF_SIZE , stdin) ;
 	if(strlen(data_to_send)>=BUF_SIZE){
+	 	data_to_send[strlen(data_to_send) - 1] = 0x00;    
 	}
+
     //after the user defined function does its work
     // send data
     int len =
