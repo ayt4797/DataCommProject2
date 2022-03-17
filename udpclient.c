@@ -106,9 +106,10 @@ int main(int argc, char *argv[]) {
   for (;;) {
     printf("Prompt> ");
     memset( data_to_send, 0x00, BUF_SIZE + 1);
-
 	scanf("%s",data_to_send);
  	data_to_send[strlen(data_to_send) - 1] = 0x00;    
+	if(strlen(data_to_send)>=BUF_SIZE){
+	}
     //after the user defined function does its work
     // send data
     int len =

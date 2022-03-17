@@ -1,3 +1,0 @@
-#!/bin/bash
-# valgrind script 
-valgrind --tool=memcheck --leak-check=yes --track-origins=yes ./$1 $2 $3 $4

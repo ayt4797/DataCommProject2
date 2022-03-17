@@ -6,7 +6,7 @@
 #include <string.h>
 #include <errno.h>
 #include <netdb.h>
-
+#include<stdlib.h>
 #define BUF_SIZE    8192
 #define	SERVER_PORT 8888
 
@@ -47,7 +47,8 @@ int main(int argc, char *argv[]) {
 	// htons: host to network long: same as htons but for long
 	
 	server_address.sin_addr.s_addr = ip_addr;
-	char hostname[16];
+	char hostname[128];
+	char service_name [128];
 
 	// create a UDP socket, creation returns -1 on failure
 	int sock;
@@ -88,12 +89,25 @@ int main(int argc, char *argv[]) {
     }
     else
     {
-	if(getnameinfo (&client_address,client_address_len, hostname,16,NULL,0,0 )==-1){
+	struct addrinfo hints={0}; //filters
+	hints.ai_family =AF_INET;
+	hints.ai_socktype =SOCK_DGRAM;
+	struct addrinfo *result;
+	char* client_ip=inet_ntoa( client_address.sin_addr );
+	if(getaddrinfo (client_ip,NULL, &hints,&result )==-1){
 		printf("error getting host name\n");
+		free(result);
 		return -99;
+	}else{
+		for (struct addrinfo * res = result;   res != NULL;    res = res->ai_next)
+   			{
+        getnameinfo(res->ai_addr, res->ai_addrlen, 
+                    hostname,         sizeof(hostname), 
+                    service_name,      sizeof(service_name), 0);
+    }
 	}
-
-      // inet_ntoa prints user friendly representation of the ip address
+	freeaddrinfo(result);
+    // inet_ntoa prints user friendly representation of the ip address
       printf( "rcvd: '%s' from %s %u %d <%s>\n",
               buffer,
               inet_ntoa( client_address.sin_addr ),
