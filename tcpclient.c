@@ -13,53 +13,23 @@
 #include <unistd.h>
 #include <time.h>
 #include <sys/select.h>
-
-/*
-int main() {
-	const char* server_name = "localhost";
-	const int server_port = 8877;
-
-	struct sockaddr_in server_address;
-	memset(&server_address, 0, sizeof(server_address));
-	server_address.sin_family = AF_INET;
-
-	// creates binary representation of server name
-	// and stores it as sin_addr
-	// http://beej.us/guide/bgnet/output/html/multipage/inet_ntopman.html
-	inet_pton(AF_INET, server_name, &server_address.sin_addr);
-
-	// htons: port in network order format
-	server_address.sin_port = htons(server_port);
-
-	// open socket
-	int sock;
-	if ((sock = socket(PF_INET, SOCK_DGRAM, 0)) < 0) {
-		printf("could not create socket\n");
-		return 1;
-	}
-
-	// data that will be sent to the server
-	const char* data_to_send = "Gangadhar Hi Shaktimaan hai";
-
-	// send data
-	int len =
-	    sendto(sock, data_to_send, strlen(data_to_send), 0,
-	           (struct sockaddr*)&server_address, sizeof(server_address));
-
-	// received echoed data back
-	char buffer[100];
-	recvfrom(sock, buffer, len, 0, NULL, NULL);
-
-	buffer[len] = '\0';
-	printf("recieved: '%s'\n", buffer);
-
-	// close the socket
-	close(sock);
-	return 0;
-}
-*/
+#include <signal.h>
 
 #define BUF_SIZE    1500
+int sock;
+struct sockaddr_in server_address;
+
+void exitclient(){
+	printf("\nexiting\n");
+	char* exitcode="";
+	sendto(sock, "", strlen(exitcode), 0,
+		(struct sockaddr*)&server_address, sizeof(server_address));
+	exit(0);
+}
+void exitHandler(int signal){
+	exitclient();
+	exit(signal);
+}
 
 int main(int argc, char *argv[]) {
   //const char* server_name = "localhost";  
@@ -76,7 +46,6 @@ int main(int argc, char *argv[]) {
   }
   const int server_port = 8888;
 
-  struct sockaddr_in server_address;
   
   char buffer[BUF_SIZE+1];
   char *data_to_send = buffer;
@@ -90,7 +59,6 @@ int main(int argc, char *argv[]) {
 server_address.sin_addr.s_addr=ip_addr;
 
   // open socket
-  int sock;
   if ((sock = socket(PF_INET, SOCK_STREAM, 0)) < 0) {
     printf("could not create socket\n");
     return 1;
@@ -115,6 +83,9 @@ server_address.sin_addr.s_addr=ip_addr;
     int len =
         sendto(sock, data_to_send, strlen(data_to_send), 0,
                (struct sockaddr*)&server_address, sizeof(server_address));
+	if(len==0){
+		exitclient();
+	}
 	printf("%s",data_to_send);
 	timev.tv_sec=timer;
 	timev.tv_usec=0;
@@ -124,8 +95,10 @@ server_address.sin_addr.s_addr=ip_addr;
 	time_t start = time(NULL);
 	int s = select(32, &rfds, NULL, NULL, &timev);
 	time_t end = time(NULL);
-    if (s == -1)
+    if (s == -1){
         perror("select failed!");
+		continue;
+		}
     else if (s){
 		ssize_t r=recvfrom(sock, buffer, len, 0, NULL, NULL);
 		if(r==0){
@@ -145,7 +118,8 @@ server_address.sin_addr.s_addr=ip_addr;
 		printf("Select: %d",s);
 		int diff = (end-start);
 	printf("\n time : %d\n",diff);
-
+  	signal(SIGINT, exitHandler);
+	
   }
   
   // close the socket
