@@ -12,6 +12,16 @@
 #define BUF_SIZE 1500
 #define SERVER_PORT 8888
 
+
+
+struct cmd_s{
+	uint16_t type;
+	uint16_t length;
+	char buffer[BUF_SIZE];
+
+};
+
+
 int main(int argc, char *argv[])
 {
 	// port to start the server on
@@ -131,7 +141,20 @@ int main(int argc, char *argv[])
 								service_name, sizeof(service_name), 0);
 				}
 			}
+			
 			freeaddrinfo(result);
+
+			//seperate header from packet:
+			struct cmd_s msg;
+			msg.type=htons(0x7eef);
+			msg.length=htons(len);
+			memcpy(msg.buffer,buffer, len);
+			int actLength=sizeof(msg.type)+sizeof(msg.length)+len;
+
+
+
+
+
 			// inet_ntoa prints user friendly representation of the ip address
 			printf("rcvd: '%s' from %s %u %d <%s>, service: %s\n",
 				   buffer,
@@ -141,7 +164,7 @@ int main(int argc, char *argv[])
 			printf("read counter: %d\n", read_counter);
 			// send same content back to the client ("echo")
 			// I think this is where the ack is sent*
-			int len_send = sendto(accepted, buffer, len, 0, (struct sockaddr *)&client_address,
+			int len_send = sendto(accepted, &msg, actLength, 0, (struct sockaddr *)&client_address,
 								  sizeof(client_address));
 			if (len_send == -1)
 			{

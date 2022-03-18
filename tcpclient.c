@@ -84,11 +84,6 @@ int main(int argc, char *argv[]) {
   memset(&server_address, 0, sizeof(server_address));
   server_address.sin_family = AF_INET;
 
-  // creates binary representation of server name
-  // and stores it as sin_addr
-  // http://beej.us/guide/bgnet/output/html/multipage/inet_ntopman.html
-  //inet_pton(AF_INET, server_name, &server_address.sin_addr);
-
   server_address.sin_addr.s_addr = htonl( INADDR_LOOPBACK );
   // htons: port in network order format
   server_address.sin_port = htons(server_port);
@@ -113,7 +108,7 @@ server_address.sin_addr.s_addr=ip_addr;
     printf("Prompt> ");
     memset( data_to_send, 0x00, BUF_SIZE + 1);
 
-	scanf("%s",data_to_send);
+	fgets(data_to_send, BUF_SIZE , stdin) ;
  	data_to_send[strlen(data_to_send) - 1] = 0x00;    
     //after the user defined function does its work
     // send data
@@ -135,8 +130,10 @@ server_address.sin_addr.s_addr=ip_addr;
 		ssize_t r=recvfrom(sock, buffer, len, 0, NULL, NULL);
 		if(r==0){
 			printf("No packets?");
+			continue;
 		} else if(r==-1){
 			printf("error in recvfrom");
+			continue;
 		}
 		printf("SUCCESSES\n");
 		buffer[len] = '\0';
@@ -148,12 +145,6 @@ server_address.sin_addr.s_addr=ip_addr;
 		printf("Select: %d",s);
 		int diff = (end-start);
 	printf("\n time : %d\n",diff);
-
-
-    // data that will be sent to the server
-    // fgets(data_to_send, BUF_SIZE, stdin);
-    // remove trailing \n from the user input
-   
 
   }
   
