@@ -31,12 +31,14 @@ int sendMessage(int type, char *buffer)
 {
 	struct cmd_s msg;
 	msg.type = htons(type);
+	printf("TYPE: %hu\n",msg.type);
 	memset(msg.buffer, 0, sizeof(msg.buffer));
 	msg.length = htons(strlen(buffer));
 	memcpy(msg.buffer, buffer, strlen(buffer));
 	int actLength = sizeof(msg.type) + sizeof(msg.length) + strlen(buffer);
+	printf("Actual length: %d\n",actLength);
 	int len =
-		sendto(sock, &msg, actLength, 0,
+		sendto(sock, &msg, actLength+1, 0,
 			   (struct sockaddr *)&server_address, sizeof(server_address));
 	return len;
 }
@@ -77,7 +79,7 @@ int main(int argc, char *argv[])
 	long double timer;
 	in_addr_t ip_addr;
 	char *data_to_send;
-	char buffer[BUF_SIZE + 1];
+	char buffer[BUF_SIZE];
 	data_to_send = buffer;
 	if (argc <= 2)
 	{
@@ -104,9 +106,6 @@ int main(int argc, char *argv[])
 		printf("could not create socket\n");
 		return 1;
 	}
-	struct timeval timev;
-	timev.tv_sec = timer;
-	timev.tv_usec = 0;
 
 	con = connect(sock, (struct sockaddr *)&server_address, sizeof(server_address));
 	if (con != 0)
@@ -122,46 +121,27 @@ int main(int argc, char *argv[])
 	//  FD_SET(p[0], &rfds);
 
 	// Loop here until we get a SIGHUP or other interrupting signal
+	struct timeval timev;
 	for (;;)
 	{
 		//****if the usr wants to exit prematurally using ctrl c it requires the user to press enter to get into the select b/c it's stalled at fgets until it can get to the select loop, as all the ctrl c does is write to a pipe that controls exit
 		printf("Prompt> ");
-		memset(data_to_send, 0x00, BUF_SIZE + 1);
-
-		fgets(data_to_send, BUF_SIZE, stdin);
-		if(data_to_send[0]=='\n'){
+		fflush(stdout);
+		if (data_to_send[0] == '\n')
+		{
 			printf("exit client");
 			exitclient();
 		}
 
-		data_to_send[strlen(data_to_send) - 1] = 0x00;
-		// after the user defined function does its work
-		//  send data
-		int len = sendMessage(0x7eef, data_to_send);
-
-		if (len == 0)
-		{
-			printf("no data to send exiting"); // need to document
-			return 0;
-		}
-		else if (len < 0)
-		{
-			printf("send error error code: %d ", errno);
-			return -99;
-		}
-		while (len < strlen(data_to_send))
-		{
-			printf("error sending packet sending additional packets");
-			sendMessage(0x7eeef, buffer + len);
-		}
-
-
 		// setting the read side of the pipe
 		// so that out of the select function so we can check if the fd_set has the pipe or the socket
+		timev.tv_sec = timer;
+		timev.tv_usec = 0;
 
 		FD_ZERO(&rfds);
 		FD_SET(sock, &rfds);
 		FD_SET(p[0], &rfds);
+		FD_SET(0, &rfds);
 
 		int s = select(1024, &rfds, NULL, NULL, &timev);
 		if (s == -1)
@@ -172,43 +152,73 @@ int main(int argc, char *argv[])
 		else if (s == 0)
 		{
 			printf("TIMEOUT\n");
+			continue;
 		}
 		else
 		{
-				if (FD_ISSET(sock, &rfds))
+			if (FD_ISSET(sock, &rfds))
+			{
+				ssize_t r = recvfrom(sock, buffer, BUF_SIZE, 0, NULL, NULL);
+				if (strlen(data_to_send) == 0)
 				{
-					ssize_t r = recvfrom(sock, buffer, BUF_SIZE, 0, NULL, NULL);
-					if (strlen(data_to_send) == 0)
-					{
-						continue;
-					}
-					if (r == 0)
-					{
-						printf("server ended");
-						close(sock);
-						exit(0);
-					}
-					else if (r == -1)
-					{
-						printf("error in recvfrom");
-						continue;
-					}
-					printf("SUCCESSES\n");
-					buffer[r] = '\0';
-					printf("reply: '%s'\n", buffer);
+					continue;
 				}
-				else
+				if (r == 0)
 				{
-					printf("here");
-					char signalBuf[5];
-					read(p[0], &signalBuf, 5);
-					printf("signal buf: %s", signalBuf);
-					if (strcmp(signalBuf, "Exit") == 0)
+					printf("server ended");
+					close(sock);
+					exit(0);
+				}
+				else if (r == -1)
+				{
+					printf("error in recvfrom");
+					continue;
+				}
+				printf("SUCCESSES\n");
+				buffer[r] = '\0';
+				printf("reply: '%s'\n", buffer);
+			}
+			else if (FD_ISSET(0, &rfds))
+			{
+				memset(data_to_send, 0x00, BUF_SIZE );
+				fgets(data_to_send, BUF_SIZE-4, stdin);
+				// after the user defined function does its work
+				//  send data
+				if(data_to_send[0]=='\0'){
+					exitclient();
+				}
+				if (strlen(data_to_send) > 0)
+				{
+					printf("DATA: %s",data_to_send);
+					int len = sendMessage(0x7eef, data_to_send);
+
+					if (len == 0)
 					{
-						exitclient();
+						printf("no data to send exiting"); // need to document
+						return 0;
+					}
+					else if (len < 0)
+					{
+						printf("send error error code: %d ", errno);
+						return -99;
+					}
+					while (len < strlen(data_to_send))
+					{
+						printf("error sending packet sending additional packets");
+						sendMessage(0x7eeef, buffer + len);
 					}
 				}
 			}
+			else
+			{
+				char signalBuf[5];
+				read(p[0], &signalBuf, 5);
+				if (strcmp(signalBuf, "Exit") == 0)
+				{
+					exitclient();
+				}
+			}
+		}
 	}
 
 	// close the socket
