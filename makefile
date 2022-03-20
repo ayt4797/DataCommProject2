@@ -9,3 +9,4 @@ all:
 	$(cc) tcpserver.c -g -o server_tcp
 	$(cc) tcpclient.c -g -o client_tcp
 	scp server_tcp ayt4797@eng-2500-10.main.ad.rit.edu:/home/ayt4797/datacommProject2
+	# scp client_tcp ayt4797@eng-2500-11.main.ad.rit.edu:/home/ayt4797/datacommProject2

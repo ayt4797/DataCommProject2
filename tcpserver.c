@@ -18,7 +18,10 @@ struct cmd_s
 	uint16_t length;
 	char buffer[BUF_SIZE];
 };
-
+void fill_in_cmd_struct(struct cmd_s msg, char *buffer)
+{
+	// cmd_s
+}
 int main(int argc, char *argv[])
 {
 	// port to start the server on
@@ -88,15 +91,6 @@ int main(int argc, char *argv[])
 	printf("\nlistening\n");
 	int accepted = 0;
 	socklen_t client_address_size = 0;
-	while (accepted == 0)
-	{
-		client_address_size = sizeof(client_address);
-		accepted = accept(sock, (struct sockaddr *)&client_address, &client_address_size);
-		// if(accepted<0){
-		// 	printf("\nerror in accepting\n");
-		// 	return -99;
-		// }
-	}
 	char hostname[128];
 	char service_name[128];
 
@@ -104,24 +98,27 @@ int main(int argc, char *argv[])
 	// run indefinitely
 	while (true)
 	{
-		struct cmd_s msg;
-
-		memset(buffer, 0x00, BUF_SIZE + 1);
-		printf("Calling Rcv\n");
-		// read content into buffer from an incoming client
-		int len = recvfrom(accepted, buffer, BUF_SIZE, 0,
-						   (struct sockaddr *)&client_address,
-						   &client_address_len);
-		read_counter += 1;
-		if (len < 1) //b/c of this if we tried to do just like \0 message as exit it'd error out.
+		client_address_size = sizeof(client_address);
+		accepted = accept(sock, (struct sockaddr *)&client_address, &client_address_size);
+		if (accepted == 0)
+			continue;
+		else if (accepted == -1)
 		{
-			printf("Error on RX %d <%s>\n", errno, strerror(errno));
-			msg.type = htons(0x5AA5);
-			
+			printf("couldn't accept socket ending");
 			return -99;
 		}
-		else
-		{
+
+		// read content into buffer from an incoming client
+		// read until you can't
+		while (1)
+		{ //last thing figure out how we can have multiple clients
+
+			memset(buffer, 0x00, BUF_SIZE + 1);
+			printf("Calling Rcv\n");
+
+			int len = recv(accepted, buffer, BUF_SIZE, 0);
+			read_counter += 1;
+			printf("read counter: %d\n", read_counter);
 			struct addrinfo hints = {0}; // filters
 			hints.ai_family = AF_INET;
 			hints.ai_socktype = SOCK_DGRAM;
@@ -137,40 +134,53 @@ int main(int argc, char *argv[])
 			{
 				for (struct addrinfo *res = result; res != NULL; res = res->ai_next)
 				{
+
 					getnameinfo(res->ai_addr, res->ai_addrlen,
 								hostname, sizeof(hostname),
 								service_name, sizeof(service_name), 0);
 				}
+				printf("service_name : %s\n", service_name);
+				freeaddrinfo(result);
 			}
+			printf("len: %d",len);
 
-			freeaddrinfo(result);
+			// seperate header fr;om packet:
+			struct cmd_s msg;
 
-			// seperate header from packet:
-			msg.type = htons(0x7eef);
-			
-			msg.length = htons(len);
-			memcpy(msg.buffer, buffer, len);
-			int actLength = sizeof(msg.type) + sizeof(msg.length) + len;
+			printf("post copy1");
 
+			memcpy(&msg.type, buffer, sizeof(msg.type));
+			memcpy(&msg.length, buffer + sizeof(msg.type), sizeof(msg.length));
+			printf("post copy2");
+			msg.type = htons(msg.type);
+			msg.length = htons(msg.length);
+			memset(msg.buffer, 0, sizeof(msg.buffer));
+			if (msg.type == (0x7eef))
+				memcpy(msg.buffer, buffer + sizeof(msg.type) + sizeof(msg.length), len - (sizeof(msg.type) + sizeof(msg.length)));
+			else{
+				msg.buffer[0]= '\0';
+			}
 			// inet_ntoa prints user friendly representation of the ip address
-			printf("rcvd: '%s' from %s %u %d <%s>, service: %s\n",
-				   buffer,
+			printf("rcvd: '%s' from %s %u %d <%s>, service: %s type: %hu length: %hu \n",
+				   msg.buffer,
 				   inet_ntoa(client_address.sin_addr),
 				   ntohs(client_address.sin_port),
-				   client_address_len, hostname, service_name);
-			printf("read counter: %d\n", read_counter);
-			// send same content back to the client ("echo")
-			// I think this is where the ack is sent*
-			// if(msg.type=)
-			int len_send = sendto(accepted, buffer, actLength, 0, (struct sockaddr *)&client_address,
-								  sizeof(client_address));
-			if (len_send == -1)
+				   client_address_len, hostname, service_name, msg.type, msg.length);
+
+			if (msg.type == (0x7eef))
 			{
-				printf("error sending back");
-				return -99;
+				int len_send = sendto(accepted, msg.buffer, msg.length, 0, (struct sockaddr *)&client_address,
+									  sizeof(client_address));
+				if (len_send == -1)
+				{
+					printf("error sending back");
+					return -99;
+				}
 			}
-			if(msg.type==htons(0x5AA5)){
-				break;
+			else if (msg.type == (0x5aa5))
+			{
+				printf("\nDisconnecting\n");
+				exit(0);
 			}
 		}
 	}
