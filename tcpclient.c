@@ -105,6 +105,9 @@ int main(int argc, char *argv[])
 		return 1;
 	}
 	struct timeval timev;
+	timev.tv_sec = timer;
+	timev.tv_usec = 0;
+
 	con = connect(sock, (struct sockaddr *)&server_address, sizeof(server_address));
 	if (con != 0)
 	{
@@ -152,8 +155,6 @@ int main(int argc, char *argv[])
 			sendMessage(0x7eeef, buffer + len);
 		}
 
-		timev.tv_sec = timer;
-		timev.tv_usec = 0;
 
 		// setting the read side of the pipe
 		// so that out of the select function so we can check if the fd_set has the pipe or the socket
