@@ -120,6 +120,6 @@ int main(int argc, char *argv[]) {
             sizeof(client_address));
     }
 	}
-
+	close(sock);
 	return 0;
 }

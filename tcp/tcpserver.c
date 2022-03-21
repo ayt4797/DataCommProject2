@@ -98,7 +98,7 @@ int main(int argc, char *argv[])
 	
 	int acceptedFd[MAX_CLIENTS];
 	memset(acceptedFd,0,MAX_CLIENTS*sizeof(int));
-	
+	int max=0;
 	while (true)
 	{
 		FD_ZERO(&rfds);
@@ -108,7 +108,8 @@ int main(int argc, char *argv[])
 		int s = select(sock + 1, &rfds, NULL, NULL, &timev);
 		if (s == -1)
 		{
-			printf("select failed");
+			perror("select failed");
+			exit(1);
 		}
 		else if(s!=0)
 		{
@@ -123,17 +124,18 @@ int main(int argc, char *argv[])
 				printf("SOCKETS OPEN");
 				fflush(stdout);
 				acceptedFd[i]=accepted;
+				max=accepted;
 				break;
 			}
 		}
-		int s_accepted = select(1024, &rfds_accepted, NULL, NULL, &timev);
+		int s_accepted = select(max+1, &rfds_accepted, NULL, NULL, &timev);
 		if(s_accepted==-1){
 			perror("select on accepted failed");
+			// exit(1);
 		}
 		else if(s_accepted!=0){
 			for (int i=0;i<MAX_CLIENTS;i++){
 				if(acceptedFd[i]!=0 && FD_ISSET(acceptedFd[i],&rfds_accepted)){
-					printf("HERE!");
 					communicateWithClient(acceptedFd[i],client_address,&read_counter);
 				}
 			}
@@ -168,9 +170,6 @@ void communicateWithClient(int accepted,struct sockaddr_in client_address,int* r
 	memset(&tst, 0, sizeof(tst));
 	memcpy(&tst, buffer, sizeof(tst));
 	
-	printf("type : %hu ",tst);
-
-	printf("BUFFER: %s\n", buffer);
 	if (len == -1)
 	{
 		perror("error on reading");
@@ -240,7 +239,6 @@ void communicateWithClient(int accepted,struct sockaddr_in client_address,int* r
 		close(accepted);
 		exit(0);
 	}
-	printf("end of first while loop");
 	fflush(stdout);
 	// close(accepted);
 }
